@@ -4,7 +4,7 @@ import {Fragment, useRef, useState} from "react";
 import {Dialog, Transition} from '@headlessui/react'
 
 import {WALLET_LIST} from "../../lib/constant";
-import {BounceLoader, GridLoader, HashLoader} from "react-spinners";
+import {BounceLoader} from "react-spinners";
 
 const installCheck = {
     "OKX": () => {
@@ -54,9 +54,12 @@ const WalletListDialog = ({open, setOpen}) => {
         setWalletStatus('connecting')
         if (wallet.name === 'OKX') {
             try {
-                const accounts = await window.okxwallet.request({
-                    method: "eth_requestAccounts",
-                });
+                // const accounts = await window.okxwallet.request({
+                //     method: "eth_requestAccounts",
+                // });
+                const result = await window.okxwallet.bitcoin.connect()
+                console.log(result)
+                setWalletStatus('connected')
             } catch (e) {
                 setWalletStatus('disconnecting')
             }
@@ -121,14 +124,15 @@ const WalletListDialog = ({open, setOpen}) => {
                                         }
                                         {/*钱包正在连接时展示下面的界面*/}
                                         {
-                                            walletStatus === 'connecting' && <div
+                                            walletStatus === 'connecting' || walletStatus === 'connected' && <div
                                                 className="cursor-pointer flex flex-col justify-between text-gray-900 items-center mt-6 sm:mx-4 p-4"
                                             >
                                                 <img src={currentWallet.icon} className='w-10' alt="钱包图标"/>
                                                 <span className='font-bold my-4'>{currentWallet.name} Wallet</span>
                                                 <div className='flex items-center'>
                                                     <BounceLoader size={30} color="#000"/>
-                                                    <span className='ml-4'>正在连接中</span>
+                                                    <span
+                                                        className='ml-4'>{walletStatus === 'connecting' ? '正在连接中' : '钱包已连接'}</span>
                                                 </div>
                                             </div>
                                         }
@@ -139,7 +143,6 @@ const WalletListDialog = ({open, setOpen}) => {
                                             className="inline-flex w-full justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
                                             onClick={() => {
                                                 if (walletStatus === 'connecting') {
-                                                    // TODO 取消钱包的连接动作
                                                     setWalletStatus('disconnected')
                                                 } else {
                                                     setOpen(false)
@@ -147,7 +150,9 @@ const WalletListDialog = ({open, setOpen}) => {
                                             }}
                                             ref={cancelButtonRef}
                                         >
-                                            {walletStatus === 'connecting' ? '返回' : '关闭'}
+                                            {walletStatus === 'connecting' && '返回'}
+                                            {walletStatus === 'disconnected' && '关闭'}
+                                            {walletStatus === 'connected' && '关闭'}
                                         </button>
                                     </div>
                                 </Dialog.Panel>
