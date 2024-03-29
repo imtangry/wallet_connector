@@ -22,7 +22,7 @@ const ConnectButton = () => {
         },
     })
 
-    console.log(account, connectors)
+    console.log(connectors)
     return (
         <div className='select-none'>
             {status !== 'connected' &&
