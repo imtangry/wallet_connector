@@ -1,10 +1,10 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-此项目基于 nextjs、wagmi 实现钱包的连接和交互。
+Demo基于 `nextjs`、`wagmi` 实现钱包的连接和交互
 
 ## Getting Started
 
-本地使用开发模式启动项目:
+本地使用开发模式启动此项目:
 
 ```bash
 npm run dev
