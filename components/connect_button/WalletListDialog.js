@@ -1,10 +1,11 @@
 'use client'
 
-import {Fragment, useRef, useState} from "react";
+import {Fragment, useEffect, useRef, useState} from "react";
 import {Dialog, Transition} from '@headlessui/react'
 
-import {WALLET_LIST} from "../../lib/constant";
+import {WALLET_LIST, WALLET_STATUS} from "../../lib/constant";
 import {BounceLoader} from "react-spinners";
+import {useConnect} from "wagmi";
 
 const installCheck = {
     "OKX": () => {
@@ -15,9 +16,13 @@ const installCheck = {
     },
 }
 const WalletListDialog = ({open, setOpen}) => {
+    const {connectAsync, connectors} = useConnect()
+    // console.log('WalletListDialog', connectors, connect)
+
     const cancelButtonRef = useRef(null)
     const [currentWallet, setCurrentWallet] = useState({})
     const [walletStatus, setWalletStatus] = useState('disconnected')
+    const [connectError, setConnectError] = useState('')
     const [toast, setToast] = useState(false)
     const [toastContent, setToastContent] = useState({
         type: 'error',
@@ -25,7 +30,18 @@ const WalletListDialog = ({open, setOpen}) => {
         body: ''
     })
 
-    const connect = (wallet) => {
+    useEffect(() => {
+        console.log(walletStatus)
+    }, [walletStatus])
+
+    const init = () => {
+        setConnectError('');
+        setWalletStatus('disconnected');
+        setCurrentWallet({});
+    }
+
+    const connectWallet = (wallet) => {
+
         try {
             if (!installCheck[wallet.name]()) {
                 setToastContent({
@@ -52,16 +68,30 @@ const WalletListDialog = ({open, setOpen}) => {
     const connecting = async (wallet) => {
         setCurrentWallet(wallet)
         setWalletStatus('connecting')
+        console.log(walletStatus)
         if (wallet.name === 'OKX') {
             try {
                 // const accounts = await window.okxwallet.request({
                 //     method: "eth_requestAccounts",
                 // });
-                const result = await window.okxwallet.bitcoin.connect()
-                console.log(result)
+                let connector = null
+                connectors.some(c => {
+                    if (c.id === wallet.id) {
+                        connector = c
+                        return true
+                    }
+                })
+                const res = await connectAsync({chainId: 198, connector})
+                // const result = await window.okxwallet.bitcoin.connect()
+                console.log(res)
                 setWalletStatus('connected')
+
             } catch (e) {
-                setWalletStatus('disconnecting')
+                console.log(e)
+                setConnectError(e.shortMessage || e.message || '连接错误')
+                setTimeout(() => {
+                    init()
+                }, 3000)
             }
 
         } else if (wallet.name === 'UniSat') {
@@ -111,8 +141,8 @@ const WalletListDialog = ({open, setOpen}) => {
                                             walletStatus === 'disconnected' && WALLET_LIST.map((w) => (
                                                 <div key={w.id}
                                                      className="cursor-pointer flex justify-between mt-6 sm:mx-4 p-4 rounded-xl border-2 hover:border-slate-200 hover:bg-slate-100"
-                                                     onClick={() => {
-                                                         connect(w)
+                                                     onClick={(e) => {
+                                                         connectWallet(w)
                                                      }
                                                      }
                                                 >
@@ -124,19 +154,21 @@ const WalletListDialog = ({open, setOpen}) => {
                                         }
                                         {/*钱包正在连接时展示下面的界面*/}
                                         {
-                                            walletStatus === 'connecting' || walletStatus === 'connected' && <div
+                                            (walletStatus === 'connecting' || walletStatus === 'connected') && <div
                                                 className="cursor-pointer flex flex-col justify-between text-gray-900 items-center mt-6 sm:mx-4 p-4"
                                             >
                                                 <img src={currentWallet.icon} className='w-10' alt="钱包图标"/>
                                                 <span className='font-bold my-4'>{currentWallet.name} Wallet</span>
                                                 <div className='flex items-center'>
-                                                    <BounceLoader size={30} color="#000"/>
+                                                    {walletStatus !== 'connected' &&
+                                                    <BounceLoader size={30} color="#000"/>}
                                                     <span
-                                                        className='ml-4'>{walletStatus === 'connecting' ? '正在连接中' : '钱包已连接'}</span>
+                                                        className={['ml-4', connectError ? 'text-red-600' : ''].join(' ')}>{connectError ? connectError : WALLET_STATUS[walletStatus]}</span>
                                                 </div>
                                             </div>
                                         }
                                     </div>
+                                    {/*底部按钮*/}
                                     <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-10">
                                         <button
                                             type="button"
@@ -162,9 +194,9 @@ const WalletListDialog = ({open, setOpen}) => {
                 </Dialog>
             </Transition.Root>
 
+            {/*toast*/}
             <Transition.Root show={toast} as={Fragment}>
                 <Dialog as="div" className="relative z-10 select-none" onClose={() => (false)}>
-                    {/*toast*/}
                     <div className="fixed right-0 top-10 z-20">
                         <div className="flex min-h-full items-start justify-center p-4">
                             <Transition.Child

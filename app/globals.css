@@ -4,7 +4,11 @@
 
 @layer components {
     .btn-primary {
-        @apply rounded-md px-4 bg-fuchsia-600 text-slate-100 leading-9 hover:bg-fuchsia-500
+        @apply flex items-center rounded-md px-4 bg-fuchsia-600 text-slate-100 leading-9 hover:bg-fuchsia-500
+    }
+
+    .btn-plain {
+        @apply flex items-center rounded-md px-4 bg-slate-200 text-slate-950 leading-9 hover:bg-slate-100
     }
 
     .text-ellipsis{
