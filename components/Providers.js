@@ -2,6 +2,7 @@
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {WagmiProvider} from 'wagmi'
 import {http, createConfig} from 'wagmi'
+import {injected} from 'wagmi/connectors'
 import {mainnet} from 'wagmi/chains'
 
 // 添加本系统 支持的链
@@ -9,14 +10,15 @@ import {mainnet} from 'wagmi/chains'
 const BTC = {
     id: 198,
     name: 'Bitcoin',
-    nativeCurrency: { name: 'Bitcoin', symbol: 'BTC', decimals: 18 },
+    nativeCurrency: {name: 'Bitcoin', symbol: 'BTC', decimals: 18},
     rpcUrls: {
-        default: { http: ['https://rpc.bitchain.biz'] },
+        default: {http: ['https://rpc.bitchain.biz']},
     },
 }
 
 export const config = createConfig({
     chains: [mainnet, BTC],
+    connectors: [injected()],
     transports: {
         [mainnet.id]: http(),
     },

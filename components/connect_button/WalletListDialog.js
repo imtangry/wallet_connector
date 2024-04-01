@@ -17,8 +17,6 @@ const installCheck = {
 }
 const WalletListDialog = ({open, setOpen}) => {
     const {connectAsync, connectors} = useConnect()
-    // console.log('WalletListDialog', connectors, connect)
-
     const cancelButtonRef = useRef(null)
     const [currentWallet, setCurrentWallet] = useState({})
     const [walletStatus, setWalletStatus] = useState('disconnected')
@@ -30,9 +28,7 @@ const WalletListDialog = ({open, setOpen}) => {
         body: ''
     })
 
-    useEffect(() => {
-        console.log(walletStatus)
-    }, [walletStatus])
+    console.log(connectors)
 
     const init = () => {
         setConnectError('');
@@ -65,37 +61,45 @@ const WalletListDialog = ({open, setOpen}) => {
         }
     }
 
+    // 优先连接比特币
     const connecting = async (wallet) => {
         setCurrentWallet(wallet)
         setWalletStatus('connecting')
-        console.log(walletStatus)
-        if (wallet.name === 'OKX') {
-            try {
-                // const accounts = await window.okxwallet.request({
-                //     method: "eth_requestAccounts",
-                // });
-                let connector = null
-                connectors.some(c => {
-                    if (c.id === wallet.id) {
-                        connector = c
-                        return true
-                    }
-                })
-                const res = await connectAsync({chainId: 198, connector})
-                // const result = await window.okxwallet.bitcoin.connect()
-                console.log(res)
-                setWalletStatus('connected')
-
-            } catch (e) {
-                console.log(e)
-                setConnectError(e.shortMessage || e.message || '连接错误')
-                setTimeout(() => {
-                    init()
-                }, 3000)
+        // 连接动作的函数返回
+        let response = null
+        // wagmi的connector
+        let connector = null
+        // 查看wagmi是否有对应的钱包connector
+        connectors.some(c => {
+            if (c.id === wallet.id) {
+                connector = c
+                return true
             }
-
-        } else if (wallet.name === 'UniSat') {
-
+        })
+        try {
+            if (wallet.name === 'OKX') {
+                // 优先使用wagmi的connector连接钱包
+                if (connector) {
+                    response = await connectAsync({chainId: 198, connector})
+                } else {
+                    response = await window.okxwallet.bitcoin.connect()
+                }
+            } else if (wallet.name === 'UniSat') {
+                // 优先使用wagmi的connector连接钱包
+                if (connector) {
+                    response = await connectAsync({chainId: 198, connector})
+                } else {
+                    response = await window.unisat.requestAccounts();
+                }
+            }
+            console.log(response)
+            setWalletStatus('connected')
+        } catch (e) {
+            console.log(e)
+            setConnectError(e.shortMessage || e.message || '连接错误')
+            setTimeout(() => {
+                init()
+            }, 3000)
         }
     }
 

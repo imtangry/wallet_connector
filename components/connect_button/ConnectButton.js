@@ -22,6 +22,7 @@ const ConnectButton = () => {
             console.log('Disconnected!')
         },
     })
+    console.log('ConnectButton address', address)
     return (
         <div className='select-none'>
             {status !== 'connected' &&
