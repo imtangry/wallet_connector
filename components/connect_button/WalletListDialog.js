@@ -5,7 +5,7 @@ import {Dialog, Transition} from '@headlessui/react'
 
 import {WALLET_LIST, WALLET_STATUS} from "../../lib/constant";
 import {BounceLoader} from "react-spinners";
-import {useConnect} from "wagmi";
+import {useWalletContext} from "../Providers";
 
 const installCheck = {
     "OKX": () => {
@@ -16,7 +16,9 @@ const installCheck = {
     },
 }
 const WalletListDialog = ({open, setOpen}) => {
-    const {connectAsync, connectors} = useConnect()
+    // const {connectAsync, connectors} = useConnect()
+    const {setState} = useWalletContext()
+
     const cancelButtonRef = useRef(null)
     const [currentWallet, setCurrentWallet] = useState({})
     const [walletStatus, setWalletStatus] = useState('disconnected')
@@ -27,8 +29,6 @@ const WalletListDialog = ({open, setOpen}) => {
         title: '',
         body: ''
     })
-
-    console.log(connectors)
 
     const init = () => {
         setConnectError('');
@@ -66,34 +66,57 @@ const WalletListDialog = ({open, setOpen}) => {
         setCurrentWallet(wallet)
         setWalletStatus('connecting')
         // 连接动作的函数返回
-        let response = null
-        // wagmi的connector
+        let address = null
         let connector = null
-        // 查看wagmi是否有对应的钱包connector
-        connectors.some(c => {
-            if (c.id === wallet.id) {
-                connector = c
-                return true
-            }
-        })
+        // wagmi的connector
+        // let connector = null
+        // // 查看wagmi是否有对应的钱包connector
+        // connectors.some(c => {
+        //     if (c.id === wallet.id) {
+        //         connector = c
+        //         return true
+        //     }
+        // })
         try {
+            // OKX 不支持测试网
             if (wallet.name === 'OKX') {
-                // 优先使用wagmi的connector连接钱包
-                if (connector) {
-                    response = await connectAsync({chainId: 198, connector})
-                } else {
-                    response = await window.okxwallet.bitcoin.connect()
+                const {okxwallet} = window
+                address = (await okxwallet.bitcoin.connect()).address
+                connector = {
+                    getBalance: async () => {
+                        return await okxwallet.bitcoin.getBalance()
+                    },
+                    accountChanged: (cb) => {
+                        return okxwallet.bitcoin.on('accountChanged', (account) => {
+                            cb(account.address)
+                        })
+                    }
                 }
             } else if (wallet.name === 'UniSat') {
-                // 优先使用wagmi的connector连接钱包
-                if (connector) {
-                    response = await connectAsync({chainId: 198, connector})
-                } else {
-                    response = await window.unisat.requestAccounts();
+                const {unisat} = window;
+                const handler = (accounts, cb) => {
+
+                }
+                [address] = await unisat.requestAccounts()
+                connector = {
+                    getBalance: async () => {
+                        return await unisat.getBalance()
+                    },
+                    accountChanged: (cb) => {
+                        return unisat.on('accountsChanged', (accounts) => (cb(accounts[0])))
+                    },
                 }
             }
-            console.log(response)
             setWalletStatus('connected')
+            setState((v) => {
+                return {
+                    ...v,
+                    status: 'connected',
+                    address,
+                    // 常用函数
+                    connector
+                }
+            })
         } catch (e) {
             console.log(e)
             setConnectError(e.shortMessage || e.message || '连接错误')
