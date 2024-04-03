@@ -17,7 +17,7 @@ const installCheck = {
 }
 const WalletListDialog = ({open, setOpen}) => {
     // const {connectAsync, connectors} = useConnect()
-    const {setState} = useWalletContext()
+    const { state:{status}, setState} = useWalletContext()
 
     const cancelButtonRef = useRef(null)
     const [currentWallet, setCurrentWallet] = useState({})
@@ -29,6 +29,12 @@ const WalletListDialog = ({open, setOpen}) => {
         title: '',
         body: ''
     })
+
+    useEffect(()=>{
+        if(status === 'disconnected'){
+            setWalletStatus('disconnected')
+        }
+    },[status])
 
     const init = () => {
         setConnectError('');
